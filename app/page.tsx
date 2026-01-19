@@ -10,17 +10,18 @@ export default function Dashboard() {
   const [year, setYear] = useState('2026');
   const [comprador, setComprador] = useState('Total');
   const [selectedMonths, setSelectedMonths] = useState([0, 11]);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, [year]);
 
-  const parseCSV = (text) => {
+  // Tipagem adicionada para evitar erro de compilação
+  const parseCSV = (text: string) => {
     const lines = text.split('\n');
     return lines.map(line => {
-      const values = [];
+      const values: string[] = [];
       let current = '';
       let inQuotes = false;
       for (let i = 0; i < line.length; i++) {
@@ -39,7 +40,7 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const urls = {
+      const urls: Record<string, string> = {
         '2025': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj1i7iGeyedT9bkuBME12GXPjIaIz8T7qpLCqetWuXt4Hoj0FP5Yh-WInFzxmIesDUacCO9DVGb-gS/pub?output=csv',
         '2026': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj1i7iGeyedT9bkuBME12GXPjIaIz8T7qpLCqetWuXt4Hoj0FP5Yh-WInFzxmIesDUacCO9DVGb-gS/pub?gid=1265127929&single=true&output=csv'
       };
@@ -54,15 +55,15 @@ export default function Dashboard() {
     }
   };
 
-  const parseSheetData = (rows) => {
+  const parseSheetData = (rows: any[]) => {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const monthIndexStart = 4;
     
-    const findRow = (indicador, comp = null) => rows.find(r => 
+    const findRow = (indicador: string, comp: string | null = null) => rows.find(r => 
       r[1]?.trim() === indicador && (comp ? r[2]?.trim() === comp : true)
     );
 
-    const clean = (v) => {
+    const clean = (v: string | undefined) => {
       if (!v || v === '-' || v.includes('#')) return null;
       const n = parseFloat(v.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
       return isNaN(n) ? null : n;
@@ -72,7 +73,7 @@ export default function Dashboard() {
     
     const timeline = months.map((month, idx) => {
       const col = monthIndexStart + idx;
-      const obj = { month, monthIndex: idx };
+      const obj: any = { month, monthIndex: idx };
       
       compradores.forEach(c => {
         const p = c === 'Total' ? '' : `${c}_`;
@@ -96,17 +97,17 @@ export default function Dashboard() {
 
   const getFilteredData = () => {
     if (!data) return null;
-    const filtered = data.timeline.filter(i => i.monthIndex >= selectedMonths[0] && i.monthIndex <= selectedMonths[1]);
+    const filtered = data.timeline.filter((i: any) => i.monthIndex >= selectedMonths[0] && i.monthIndex <= selectedMonths[1]);
     const p = comprador === 'Total' ? '' : `${comprador}_`;
 
-    const avg = (field) => {
-      const vals = filtered.map(i => i[field]).filter(v => v !== null && v > 0);
-      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    const avg = (field: string) => {
+      const vals = filtered.map((i: any) => i[field]).filter((v: any) => v !== null && v > 0);
+      return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
     };
 
     return {
-      comprasTotal: filtered.reduce((s, i) => s + (i[`${p}compras`] || 0), 0),
-      savingTotal: filtered.reduce((s, i) => s + (i[`${p}saving`] || 0), 0),
+      comprasTotal: filtered.reduce((s: number, i: any) => s + (i[`${p}compras`] || 0), 0),
+      savingTotal: filtered.reduce((s: number, i: any) => s + (i[`${p}saving`] || 0), 0),
       slaAtendimentoMedia: avg(`${p}slaAtendimento`),
       slaEntregasProdutivo: avg('slaEntregasProdutivo'),
       slaEntregasImprodutivo: avg('slaEntregasImprodutivo'),
@@ -116,12 +117,13 @@ export default function Dashboard() {
     };
   };
 
-  const fCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
-  const fPercent = (v) => (v || 0).toFixed(1) + '%';
+  const fCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
+  const fPercent = (v: number) => (v || 0).toFixed(1) + '%';
 
   if (loading) return <div className="flex h-screen items-center justify-center font-sans text-slate-500">Carregando dados de {year}...</div>;
 
   const fData = getFilteredData();
+  if (!fData) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
